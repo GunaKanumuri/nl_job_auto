@@ -104,13 +104,19 @@ LEVER_COMPANIES = [
 # =============================================================================
 # LOCATION + STACK MATCHING
 # =============================================================================
-NL_KEYWORDS = [
+# STRICT location keywords — must appear in the LOCATION field itself
+NL_LOCATION_STRICT = [
     "netherlands", "amsterdam", "rotterdam", "den haag", "the hague",
-    "eindhoven", "utrecht", "delft", "leiden", "groningen", "nl", "holland",
-    "europe", "emea", "remote", "eu remote", "remote eu", "remote - eu",
+    "eindhoven", "utrecht", "delft", "leiden", "groningen", "holland",
     "breda", "haarlem", "tilburg", "maastricht", "arnhem", "nijmegen",
     "brainport", "north holland", "south holland", "noord-holland", "zuid-holland",
+    "almere", "apeldoorn", "enschede", "hilversum", "dordrecht", "amersfoort",
 ]
+
+# LOOSE keywords — only match if location says "remote" or "europe" AND
+# the description mentions NL specifically
+NL_REMOTE_INDICATORS = ["remote", "europe", "emea", "eu remote", "remote eu",
+                         "remote - eu", "remote - europe", "worldwide"]
 
 STACK_KEYWORDS = [
     "react", "next.js", "nextjs", "typescript", "python", "fastapi",
@@ -134,10 +140,36 @@ SPONSORSHIP_NEGATIVE = [
     "must have right to work", "eu citizens only", "no relocation",
 ]
 
+# Countries that are NOT Netherlands — reject if location explicitly mentions these
+NON_NL_COUNTRIES = [
+    "united states", "united kingdom", "germany", "france", "spain",
+    "portugal", "italy", "australia", "new zealand", "canada", "india",
+    "brazil", "japan", "china", "singapore", "ireland", "sweden",
+    "norway", "denmark", "finland", "austria", "switzerland", "poland",
+    "czech", "israel", "south korea", "mexico", "argentina", "chile",
+]
+
 
 def is_nl_job(location: str, title: str, desc: str) -> bool:
-    text = f"{location} {title} {desc}".lower()
-    return any(kw in text for kw in NL_KEYWORDS)
+    loc = location.lower().strip()
+    desc_lower = desc.lower()
+
+    # Step 1: If location explicitly mentions a non-NL country, reject
+    for country in NON_NL_COUNTRIES:
+        if country in loc:
+            return False
+
+    # Step 2: If location explicitly mentions a Dutch city/region, accept
+    if any(kw in loc for kw in NL_LOCATION_STRICT):
+        return True
+
+    # Step 3: If location says "remote"/"europe"/"emea", only accept if
+    # the description specifically mentions Netherlands or a Dutch city
+    if any(kw in loc for kw in NL_REMOTE_INDICATORS):
+        nl_in_desc = any(kw in desc_lower for kw in NL_LOCATION_STRICT)
+        return nl_in_desc
+
+    return False
 
 
 def quick_stack_score(title: str, desc: str) -> int:
