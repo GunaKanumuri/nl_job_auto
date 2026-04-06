@@ -34,12 +34,39 @@ GMAIL_APP_PASSWORD = os.environ.get("GMAIL_APP_PASSWORD", "")
 GOOGLE_SHEET_ID = os.environ.get("GOOGLE_SHEET_ID", "")
 GOOGLE_SERVICE_ACCOUNT_JSON = os.environ.get("GOOGLE_SERVICE_ACCOUNT_JSON", "")
 
-PROFILE = """Guna Shekar Varma Kanumuri — MS Computer Science (Purdue University, May 2025, GPA 3.70).
-Core Stack: React, Next.js, TypeScript, React Native, FastAPI, Python, PostgreSQL, Supabase, LLM/AI tooling (Gemini, Sarvam AI, LangChain).
-Projects: Full-stack SaaS event platform (WeDesiDecor, Next.js+Express+PostgreSQL), AI warranty management mobile app (MIRA Safety, React Native+Supabase, 290+ tests), WhatsApp AI voice bot for elderly care (AYANA, FastAPI+Sarvam+Gemini), AI job search platform (Karmio, Next.js+Supabase+Greenhouse/Lever APIs).
-Experience: Solo full-stack developer, AI engineer, shipped production apps end-to-end.
-Looking for: Full-stack engineer, AI/ML engineer, frontend engineer, or platform engineer roles in the Netherlands.
-Visa: Zoekjaar (orientation year) permit. Needs IND-recognized sponsor for Highly Skilled Migrant visa after Zoekjaar ends."""
+PROFILE = """Guna Shekar Varma Kanumuri — MS Computer & Information Science (Purdue University, May 2025, GPA 3.70).
+
+TECHNICAL SKILLS:
+Frontend: JavaScript, React.js, Next.js, React Native, TypeScript, Redux, Tailwind CSS, HTML/CSS
+Backend: Node.js, Express.js, Python, FastAPI, Django REST Framework, RESTful APIs
+Databases: PostgreSQL, MySQL, MongoDB, Supabase, Prisma, Redis
+AI/ML: GPT-4, Claude AI, Gemini, Groq, Ollama, LangChain, LangGraph, PyTorch, Scikit-learn, RAG, Prompt Engineering
+Cloud & DevOps: AWS, GCP, Docker, Kubernetes, Vercel, Railway, GitHub Actions, CI/CD Pipelines
+
+WORK EXPERIENCE (4+ years):
+1. AI Full-Stack Developer — MIRA Safety (Sep 2025–Mar 2026):
+   - Built AI product recommendation platform: React Native mobile app (8 screens), JWT auth, FastAPI backend, PostgreSQL JSONB, Groq/Ollama LLM integration, PDF generation
+   - Built warranty management system: React Native + Node.js + Supabase, QR scanning, offline-first, 290+ automated tests, 15+ REST endpoints, 180ms response times
+
+2. Full-Stack Developer — WeDesiDecor Freelance SaaS (Oct 2025–Jan 2026):
+   - Event decoration SaaS: Next.js + Express.js + PostgreSQL, admin dashboard, booking system, sub-500ms APIs, deployed Vercel+Railway with CI/CD
+
+3. Research Assistant — IUPUI/Purdue (May 2024–May 2025):
+   - Medical imaging pipeline: Python, 500+ DICOM-to-NIFTI conversions/day, PyTorch CNNs for tumor detection (+15% precision), FastAPI serving predictions at 99.2% uptime
+
+4. Software Developer — Data Rakshak Technologies India (Mar 2022–May 2023):
+   - Coding assessment platform: 1000+ concurrent users, React/TypeScript + Redux + Django REST, Redis caching, Docker, GitHub Actions CI/CD, 50% performance improvement
+
+KEY PROJECTS:
+- Karmio: AI job search platform (Next.js, TypeScript, Supabase, Greenhouse/Lever API scraping, AI resume tailoring, Kanban pipeline)
+- AYANA: Multilingual healthcare WhatsApp bot for elderly in India (FastAPI, Gemini, Sarvam AI for voice STT/TTS across 6 Indian languages)
+- AI Project Management Platform: React + Node.js + GPT-4 + Prisma, automated sprint planning, 60% setup time reduction
+- ML Power Prediction: 4 ML models, 98% accuracy, Streamlit dashboard
+
+LOOKING FOR: Full-stack engineer, AI/ML engineer, frontend engineer, or platform engineer roles in the Netherlands.
+SENIORITY: Mid-level (4+ years experience, shipped 6+ production apps end-to-end as sole developer).
+VISA: Zoekjaar orientation year permit. Needs IND-recognized sponsor for Highly Skilled Migrant visa after 12 months.
+EDUCATION: MS Purdue (3.7 GPA), BS JNTU Hyderabad (3.4 GPA). Former Student Body President."""
 
 # =============================================================================
 # COMPANY REGISTRY — 120+ companies
@@ -320,24 +347,45 @@ async def score_with_gemini(jobs: list[dict]) -> list[dict]:
     connector = aiohttp.TCPConnector(limit=5)
     async with aiohttp.ClientSession(connector=connector) as session:
         for job in jobs:
-            prompt = f"""Score this job for the candidate. Return ONLY valid JSON, no markdown fences.
+            prompt = f"""You are a senior Dutch tech recruiter with ATS expertise. Score this job for the candidate AND analyze ATS keyword gaps. Return ONLY valid JSON, no markdown fences.
 
 CANDIDATE:
 {PROFILE}
+
+CANDIDATE'S 3 RESUME VARIANTS:
+1. "fullstack_ai" — Emphasizes: AI/LLM integration, Groq/Ollama, RAG, LangChain, prompt engineering, AYANA voice bot, Karmio AI platform
+2. "software_data" — Emphasizes: Data pipelines, ETL, n8n automation, Flask APIs, PostgreSQL optimization, ML models, broader software dev
+3. "freelance" — Emphasizes: Solo delivery, client work, ZZP'er, project handoff, documentation, speed of shipping
 
 JOB:
 Title: {job['title']}
 Company: {job['company']}
 Location: {job['location']}
-Description: {job['description'][:2000]}
+Description: {job['description'][:2500]}
 
-Return this exact JSON structure:
-{{"fit_score": <1-10>, "stack_match": <1-10>, "seniority_fit": <1-10>, "visa_friendly": <true/false>, "key_match_reasons": ["reason1", "reason2"], "cold_email_hook": "<personalized one-liner to open a cold email to the hiring manager>", "suggested_subject": "<email subject line>", "hiring_manager_title": "<exact title to search on LinkedIn>"}}"""
+Analyze and return this exact JSON:
+{{
+  "fit_score": <1-10 overall fit>,
+  "stack_match": <1-10>,
+  "seniority_fit": <1-10>,
+  "visa_friendly": <true/false based on sponsorship signals in description>,
+  "key_match_reasons": ["reason1", "reason2", "reason3"],
+  "ats_keywords_present": ["keyword1", "keyword2"],
+  "ats_keywords_missing": ["keyword the job requires but candidate resume lacks — max 5 most critical"],
+  "ats_score": <1-100 estimated ATS pass rate with current resume>,
+  "ats_fix": "<one concrete sentence: what to add/change in the resume to boost ATS score for THIS job>",
+  "cold_email_hook": "<personalized opener referencing something specific about the company's product/culture/recent news — not generic>",
+  "suggested_subject": "<email subject line>",
+  "hiring_manager_title": "<exact LinkedIn title to search>",
+  "resume_tips": "<which 2-3 bullet points to emphasize or reword — reference specific projects and metrics from the candidate's experience>",
+  "which_resume": "<'fullstack_ai' or 'software_data' or 'freelance'>",
+  "cover_letter_angle": "<one sentence describing the strongest angle for a cover letter — what makes this candidate uniquely relevant for THIS specific role>"
+}}"""
 
             try:
                 payload = {
                     "contents": [{"parts": [{"text": prompt}]}],
-                    "generationConfig": {"temperature": 0.3, "maxOutputTokens": 500},
+                    "generationConfig": {"temperature": 0.3, "maxOutputTokens": 800},
                 }
                 async with session.post(url, json=payload, timeout=aiohttp.ClientTimeout(total=30)) as resp:
                     data = await resp.json()
@@ -354,6 +402,10 @@ Return this exact JSON structure:
                     "hiring_manager_title": "Engineering Manager",
                     "key_match_reasons": [],
                     "visa_friendly": job["sponsorship_signal"] == "yes",
+                    "ats_keywords_missing": [],
+                    "ats_score": 0,
+                    "ats_fix": "",
+                    "cover_letter_angle": "",
                     "llm_error": str(e),
                 })
             # Rate limit: ~15 RPM for free Gemini
@@ -462,7 +514,15 @@ def build_email_html(jobs: list[dict], total_scraped: int, today: str, is_sunday
         hm = job.get("hiring_manager_title", "")
         subject = job.get("suggested_subject", "")
         reasons = ", ".join(job.get("key_match_reasons", [])[:2])
+        resume_tips = job.get("resume_tips", "")
+        which_resume = job.get("which_resume", "")
+        resume_badge = {"fullstack_ai": "🤖 AI Full-Stack", "software_data": "💻 Software/Data", "freelance": "🔧 Freelance"}.get(which_resume, "")
         linkedin_search = f"https://www.linkedin.com/search/results/people/?keywords={job['company'].replace(' ', '%20')}%20{hm.replace(' ', '%20')}"
+        ats_score = job.get("ats_score", 0)
+        ats_missing = ", ".join(job.get("ats_keywords_missing", [])[:5])
+        ats_fix = job.get("ats_fix", "")
+        cover_angle = job.get("cover_letter_angle", "")
+        ats_color = "#2E7D32" if ats_score >= 75 else "#E67E00" if ats_score >= 50 else "#C62828"
 
         rows_html += f"""
         <tr style="border-bottom: 1px solid #eee;">
@@ -472,6 +532,10 @@ def build_email_html(jobs: list[dict], total_scraped: int, today: str, is_sunday
                 {f'<div style="color: #555; font-size: 12px; margin-top: 4px;">✨ {reasons}</div>' if reasons else ''}
                 {f'<div style="color: #1565C0; font-size: 12px; margin-top: 4px;">💬 <em>{hook}</em></div>' if hook else ''}
                 {f'<div style="font-size: 12px; margin-top: 4px;">📧 Subject: <strong>{subject}</strong></div>' if subject else ''}
+                {f'<div style="background: #E8F5E9; padding: 6px 10px; border-radius: 4px; font-size: 12px; margin-top: 6px; color: #2E7D32;">📄 Use: <strong>{resume_badge}</strong> — {resume_tips}</div>' if resume_tips else ''}
+                {f'<div style="background: #FFF3E0; padding: 6px 10px; border-radius: 4px; font-size: 12px; margin-top: 4px; color: #E65100;">🎯 ATS: <strong style="color:{ats_color}">{ats_score}%</strong> — Missing: <strong>{ats_missing}</strong></div>' if ats_missing else ''}
+                {f'<div style="font-size: 11px; margin-top: 3px; color: #888;">🔧 Fix: {ats_fix}</div>' if ats_fix else ''}
+                {f'<div style="background: #E3F2FD; padding: 6px 10px; border-radius: 4px; font-size: 12px; margin-top: 4px; color: #1565C0;">✉️ Cover letter angle: <em>{cover_angle}</em></div>' if cover_angle else ''}
                 <div style="margin-top: 6px;">
                     <a href="{job['url']}" style="background: #E8690A; color: white; padding: 4px 12px; border-radius: 4px; text-decoration: none; font-size: 12px; font-weight: 600;">Apply →</a>
                     {f'&nbsp; <a href="{linkedin_search}" style="background: #0077B5; color: white; padding: 4px 12px; border-radius: 4px; text-decoration: none; font-size: 12px;">Find {hm} →</a>' if hm else ''}
