@@ -88,28 +88,28 @@ SENIORITY: Mid-level (4+ years, 6+ production apps shipped solo end-to-end)."""
 # COMPANY REGISTRY — VERIFIED SLUGS ONLY
 # =============================================================================
 # All slugs below were verified via search/URL inspection.
-# Greenhouse NEW API: https://job-boards.greenhouse.io/v1/boards/{slug}/jobs
+# Greenhouse API: https://boards-api.greenhouse.io/v1/boards/{slug}/jobs (official)
 # Lever API:         https://api.lever.co/v0/postings/{slug}?mode=json
 # Ashby API:         https://jobs.ashbyhq.com/{slug}/json
 
 GREENHOUSE_COMPANIES = [
     # ── VERIFIED DUTCH TECH ──────────────────────────────────────────────────
-    ("adyen",               "Adyen"),               # job-boards.greenhouse.io/adyen ✓
-    ("mollie",              "Mollie"),               # job-boards.greenhouse.io/mollie ✓
-    ("booking",             "Booking.com"),          # job-boards.greenhouse.io/booking ✓
-    ("catawiki",            "Catawiki"),             # job-boards.greenhouse.io/catawiki ✓
-    ("backbase",            "Backbase"),             # job-boards.greenhouse.io/backbase ✓
-    ("sendcloud",           "Sendcloud"),            # job-boards.greenhouse.io/sendcloud ✓
-    ("messagebird",         "Bird (MessageBird)"),   # job-boards.greenhouse.io/messagebird ✓
-    ("wetransfer",          "WeTransfer"),           # job-boards.greenhouse.io/wetransfer ✓
-    ("bynder",              "Bynder"),               # job-boards.greenhouse.io/bynder ✓
-    ("channable",           "Channable"),            # job-boards.greenhouse.io/channable ✓
-    ("recruitee",           "Recruitee"),            # job-boards.greenhouse.io/recruitee ✓
-    ("mews",                "Mews"),                 # job-boards.greenhouse.io/mews ✓
-    ("payhawk",             "Payhawk"),              # job-boards.greenhouse.io/payhawk ✓
-    ("housinganywhere",     "HousingAnywhere"),      # job-boards.greenhouse.io/housinganywhere ✓
-    ("otrium",              "Otrium"),               # job-boards.greenhouse.io/otrium ✓
-    ("studocu",             "StuDocu"),              # job-boards.greenhouse.io/studocu ✓
+    ("adyen",               "Adyen"),               # boards-api.greenhouse.io/v1/boards/adyen ✓
+    ("mollie",              "Mollie"),               # boards-api.greenhouse.io/v1/boards/mollie ✓
+    ("booking",             "Booking.com"),          # boards-api.greenhouse.io/v1/boards/booking ✓
+    ("catawiki",            "Catawiki"),             # boards-api.greenhouse.io/v1/boards/catawiki ✓
+    ("backbase",            "Backbase"),             # boards-api.greenhouse.io/v1/boards/backbase ✓
+    ("sendcloud",           "Sendcloud"),            # boards-api.greenhouse.io/v1/boards/sendcloud ✓
+    ("messagebird",         "Bird (MessageBird)"),   # boards-api.greenhouse.io/v1/boards/messagebird ✓
+    ("wetransfer",          "WeTransfer"),           # boards-api.greenhouse.io/v1/boards/wetransfer ✓
+    ("bynder",              "Bynder"),               # boards-api.greenhouse.io/v1/boards/bynder ✓
+    ("channable",           "Channable"),            # boards-api.greenhouse.io/v1/boards/channable ✓
+    ("recruitee",           "Recruitee"),            # boards-api.greenhouse.io/v1/boards/recruitee ✓
+    ("mews",                "Mews"),                 # boards-api.greenhouse.io/v1/boards/mews ✓
+    ("payhawk",             "Payhawk"),              # boards-api.greenhouse.io/v1/boards/payhawk ✓
+    ("housinganywhere",     "HousingAnywhere"),      # boards-api.greenhouse.io/v1/boards/housinganywhere ✓
+    ("otrium",              "Otrium"),               # boards-api.greenhouse.io/v1/boards/otrium ✓
+    ("studocu",             "StuDocu"),              # boards-api.greenhouse.io/v1/boards/studocu ✓
     # ── VERIFIED GLOBAL WITH NL OFFICES ─────────────────────────────────────
     ("elastic",             "Elastic"),              # NL HQ ✓
     ("miro",                "Miro"),                 # Amsterdam office ✓
@@ -485,32 +485,49 @@ def strip_html(html: str) -> str:
 # =============================================================================
 
 async def fetch_greenhouse(session, slug: str, name: str) -> list:
-    # v3 uses new job-boards endpoint
-    url = f"https://job-boards.greenhouse.io/v1/boards/{slug}/jobs?content=true"
-    try:
-        async with session.get(url, timeout=aiohttp.ClientTimeout(total=12)) as resp:
-            if resp.status != 200:
-                return []
-            data = await resp.json()
-            out = []
-            for job in data.get("jobs", []):
-                loc  = (job.get("location") or {}).get("name", "")
-                desc = strip_html(job.get("content", ""))
-                if not is_nl_job(loc, job["title"], desc):
-                    continue
-                out.append({
-                    "company": name, "title": job["title"], "location": loc,
-                    "url": job.get("absolute_url",
-                                   f"https://job-boards.greenhouse.io/{slug}/jobs/{job['id']}"),
-                    "description": desc[:3000], "source": "greenhouse",
-                    "stack_score": quick_stack_score(job["title"], desc),
-                    "sponsorship_signal": detect_sponsorship(desc),
-                    "sector": detect_sector(name, desc),
-                    "dedup": dedup_hash(name, job["title"]),
-                })
-            return out
-    except Exception:
-        return []
+    # Official Greenhouse Job Board API — no auth required for GET
+    url = f"https://boards-api.greenhouse.io/v1/boards/{slug}/jobs?content=true"
+    for attempt in range(3):
+        try:
+            async with session.get(url, timeout=aiohttp.ClientTimeout(total=15)) as resp:
+                if resp.status == 200:
+                    data = await resp.json()
+                    total = len(data.get("jobs", []))
+                    out = []
+                    for job in data.get("jobs", []):
+                        loc  = (job.get("location") or {}).get("name", "")
+                        desc = strip_html(job.get("content", ""))
+                        if not is_nl_job(loc, job["title"], desc):
+                            continue
+                        out.append({
+                            "company": name, "title": job["title"], "location": loc,
+                            "url": job.get("absolute_url",
+                                           f"https://boards.greenhouse.io/{slug}/jobs/{job['id']}"),
+                            "description": desc[:3000], "source": "greenhouse",
+                            "stack_score": quick_stack_score(job["title"], desc),
+                            "sponsorship_signal": detect_sponsorship(desc),
+                            "sector": detect_sector(name, desc),
+                            "dedup": dedup_hash(name, job["title"]),
+                        })
+                    if total > 0:
+                        print(f"  GH {name}: {total} total, {len(out)} NL")
+                    return out
+                elif resp.status == 404:
+                    print(f"  GH {name}: 404 (wrong slug or not on Greenhouse)")
+                    return []
+                elif resp.status == 429:
+                    print(f"  GH {name}: rate limited, waiting 10s...")
+                    await asyncio.sleep(10)
+                else:
+                    print(f"  GH {name}: HTTP {resp.status}")
+                    return []
+        except asyncio.TimeoutError:
+            print(f"  GH {name}: timeout (attempt {attempt+1})")
+            await asyncio.sleep(3)
+        except Exception as e:
+            print(f"  GH {name}: error — {str(e)[:60]}")
+            return []
+    return []
 
 async def fetch_lever(session, slug: str, name: str) -> list:
     url = f"https://api.lever.co/v0/postings/{slug}?mode=json"
@@ -979,7 +996,7 @@ def run_verifier():
         async with aiohttp.ClientSession(headers=headers) as session:
             # Greenhouse
             for slug, name in GREENHOUSE_COMPANIES:
-                url = f"https://job-boards.greenhouse.io/v1/boards/{slug}/jobs"
+                url = f"https://boards-api.greenhouse.io/v1/boards/{slug}/jobs"
                 try:
                     async with session.get(url, timeout=aiohttp.ClientTimeout(total=8)) as r:
                         if r.status == 200:
